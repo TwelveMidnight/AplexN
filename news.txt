@@ -1,0 +1,12 @@
+APLEX FRAMEWORK v1.0
+-----------------------------
+Welcome to the AplexN Alpha!
+
+SERVER STATUS: ONLINE
+ACTIVE PLAYERS: 142
+
+[!] Update 1.0.5 is now live.
+- Fixed vehicle sync.
+- Added new weapon handling.
+
+Have fun out there!
