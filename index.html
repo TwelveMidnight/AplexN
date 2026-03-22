@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AplexN | Multiplayer Framework</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="logo-link">
+      <img src="AplexN-logo.png" alt="AplexN Logo" class="logo-img">   
+       <div class="logo">AplexN</div>
+    </a>
+    
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="#">Servers</a>
+      <a href="#">News</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>AplexN Multiplayer Framework for GTA V.</h1>
+    <p>Experience network synchronization with our dedicated UDP server and C++ Windows Dashboard.</p>
+    
+    <div class="button-group">
+      <a href="#" class="btn-primary">Download AplexN.exe</a>
+      <a href="create-server.html" class="btn-secondary">Host a Server</a>
+    </div>
+  </header>
+
+  <section class="server-list-section" style="padding: 50px 20px; text-align: center;">
+    <h2 style="margin-bottom: 30px; font-size: 28px;">Active Servers</h2>
+    
+    <div id="serverList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; text-align: left;">
+      <p style="color: #888; width: 100%; text-align: center;">Syncing with Master API...</p>
+    </div>
+  </section>
+  <section class="features">
+    <div class="card">
+      <h2>Aplex Dashboard</h2>
+      <p>A powerful C++ Windows UI application to manage your entire gameplay experience and server connections.</p>
+    </div>
+    
+    <div class="card">
+      <h2>Dedicated UDP Server</h2>
+      <p>Lightning-fast network synchronization built to handle high player counts without breaking a sweat.</p>
+    </div>
+
+    <div class="card">
+      <h2>Node.js Web API</h2>
+      <p>Easily manage live server registration, track player stats, and push dynamic news updates directly to the client.</p>
+    </div>
+  </section>
+
+  <script>
+    fetch('/api/servers')
+      .then(response => response.json())
+      .then(servers => {
+        const serverList = document.getElementById('serverList');
+        serverList.innerHTML = ''; // Clear the "Syncing..." text
+
+        if (servers.length === 0) {
+            serverList.innerHTML = '<p style="color: #888; width: 100%; text-align: center;">No servers online. Click "Host a Server" to be the first!</p>';
+            return;
+        }
+
+        // Loop through every server Node.js gives us and draw a card for it
+        servers.forEach(server => {
+          const card = document.createElement('div');
+          
+          // I added inline styles here so it doesn't break your existing style.css
+          card.style.cssText = 'background: #1e1e24; border-radius: 8px; overflow: hidden; border-top: 4px solid #FF3A65; padding-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: white;';
+          
+          card.innerHTML = `
+            <img src="${server.image}" onerror="this.src='blueN.jpg'" style="width: 100%; height: 150px; object-fit: cover;">
+            <div style="padding: 15px;">
+              <h3 style="color: #FF3A65; margin: 0 0 10px 0;">${server.name}</h3>
+              <p style="color: #ccc; font-size: 14px; margin: 0 0 15px 0;">${server.description}</p>
+              <span style="font-size: 12px; color: #888; background: #2b2b36; padding: 5px 10px; border-radius: 4px;">
+                ${server.allowMods ? 'Custom Mods Allowed' : 'Vanilla Client Only'}
+              </span>
+            </div>
+          `;
+          serverList.appendChild(card);
+        });
+      })
+      .catch(err => {
+          document.getElementById('serverList').innerHTML = '<p style="color: #FF3A65; width: 100%; text-align: center;">Error connecting to Master Server.</p>';
+      });
+  </script>
+
+</body>
+</html>

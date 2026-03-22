@@ -1,0 +1,91 @@
+<form id="serverForm">
+      <div class="image-preview-box">
+        <label>Server Banner</label>
+        <img id="previewImg" src="blueN.jpg" alt="Server Banner Preview" onerror="this.src='blueN.jpg'">
+        <div class="file-upload">
+          <input type="file" id="imageUpload" accept="image/png, image/jpeg" onchange="previewImage(event)">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Server Name (Leave blank for default)</label>
+        <input type="text" id="serverName" placeholder="AplexN Server #...">
+      </div>
+
+      <div class="form-group">
+        <label>Server IP Address (e.g., Radmin VPN IP)</label>
+        <input type="text" id="serverIp" placeholder="26.14.X.X" required>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="serverDesc" rows="4" placeholder="Welcome to my Server!"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Player Permissions</label>
+        <div class="toggle-box">
+          <span>Allow players to use custom menus/mods?</span>
+          <input type="checkbox" id="allowClientMods">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Upload Server Resources (.BIN format only)</label>
+        <div class="toggle-box">
+          <input type="file" id="serverMods" accept=".bin" multiple>
+        </div>
+        <small style="color: #888; display: block; margin-top: 5px;">*Files are compiled to .bin to prevent players from stealing or editing your server resources.</small>
+      </div>
+
+      <button type="button" onclick="submitServer()">Initialize Server</button>
+    </form>
+  </div>
+
+  <script>
+    let base64Image = null;
+
+    // Handles dynamic image preview
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('previewImg').src = e.target.result;
+          base64Image = e.target.result; // Save image data for Node.js
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Sends the form to Node.js
+    async function submitServer() {
+      const ip = document.getElementById('serverIp').value;
+      if(!ip) return alert("You must provide a Server IP!");
+
+      const serverData = {
+        name: document.getElementById('serverName').value,
+        ip: ip, // NEW: Sending the IP to the database
+        description: document.getElementById('serverDesc').value,
+        allowMods: document.getElementById('allowClientMods').checked,
+        image: base64Image
+      };
+
+      try {
+        const response = await fetch('/api/servers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(serverData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          window.location.href = "index.html"; // Send them back to the main list!
+        }
+      } catch(err) {
+        alert("Error connecting to Master API");
+      }
+    }
+  </script>
+</body>
+</html>

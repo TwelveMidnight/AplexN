@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AplexN | Admin Control Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">AplexN Admin</div>
+      <a href="#users" class="sidebar-link">Registered Users</a>
+      <a href="#news" class="sidebar-link">Post News</a>
+      <a href="#updates" class="sidebar-link">Upload Update</a>
+      <a href="/" class="sidebar-link back-home">← Back to Site</a>
+    </aside>
+
+    <main class="admin-content">
+      <h1>Dashboard Overview</h1>
+
+      <section id="users" class="admin-card">
+        <h2>Recent Registrations (<span id="userCount" style="color: #FF3A65;">0</span> Total)</h2>
+        <table class="admin-table" style="width: 100%; text-align: left; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid #444;">
+              <th style="padding: 10px;">Username</th>
+              <th style="padding: 10px;">Server IP</th>
+              <th style="padding: 10px;">Date Registered</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="3" style="padding: 10px;">Loading live data from server...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="news" class="admin-card">
+        <h2>Post a News Update</h2>
+        <form id="newsForm" class="admin-form">
+          <input type="text" id="newsTitle" placeholder="News Title (e.g., Server Maintenance)" required style="width: 100%; padding: 10px; margin-bottom: 10px; background: #2b2b36; color: white; border: 1px solid #444;">
+          <textarea id="newsBody" placeholder="Write the update details here..." rows="5" required style="width: 100%; padding: 10px; margin-bottom: 10px; background: #2b2b36; color: white; border: 1px solid #444;"></textarea>
+          
+          <label style="color: #aaaaaa; font-size: 14px; display: block; margin-bottom: 5px;">Attach News Image (Optional):</label>
+          <input type="file" id="newsImage" accept="image/png, image/jpeg" class="file-input" style="margin-bottom: 15px;">
+          
+          <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; background: #FF3A65; color: white; border: none; cursor: pointer; font-weight: bold;">Publish News</button>
+        </form>
+      </section>
+
+      <section id="updates" class="admin-card">
+        <h2>Upload Client Update (AplexN.exe)</h2>
+        <form class="admin-form">
+          <input type="text" placeholder="Version Number (e.g., v1.0.5)" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #2b2b36; color: white; border: 1px solid #444;">
+          <input type="file" accept=".exe, .asi, .zip" class="file-input" style="margin-bottom: 15px;">
+          <button type="button" class="btn-primary" style="width: 100%; padding: 12px; background: #FF3A65; color: white; border: none; cursor: pointer; font-weight: bold;" onclick="alert('Update uploaded to Master Server!')">Upload File</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 1. Function to grab real users from your Node.js server
+    async function fetchRealUsers() {
+      try {
+        // FIX: Changed to a relative path so it works globally on Render!
+        const response = await fetch('/api/users'); 
+        
+        if (!response.ok) throw new Error("Server not responding");
+        
+        const users = await response.json(); 
+        document.getElementById('userCount').innerText = users.length;
+
+        const tableBody = document.getElementById('userTableBody');
+        tableBody.innerHTML = ''; 
+
+        users.forEach(user => {
+          const row = `<tr>
+                        <td style="padding: 10px; border-bottom: 1px solid #333;">${user.username}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #333;">${user.serverIp}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #333;">${new Date(user.registerDate).toLocaleDateString()}</td>
+                      </tr>`;
+          tableBody.innerHTML += row;
+        });
+
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        document.getElementById('userTableBody').innerHTML = '<tr><td colspan="3" style="color: red; padding: 10px;">Could not connect to database.</td></tr>';
+      }
+    }
+
+    // 2. Handle the News Submission
+    document.getElementById('newsForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const formData = new FormData();
+      formData.append('title', document.getElementById('newsTitle').value);
+      formData.append('body', document.getElementById('newsBody').value);
+      
+      const imageFile = document.getElementById('newsImage').files[0];
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      try {
+        // FIX: Changed to relative path
+        const response = await fetch('/api/news/update', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          alert("News successfully published to the framework! The C++ Launcher will now show this text.");
+          document.getElementById('newsForm').reset(); 
+        }
+      } catch (error) {
+        alert("Error publishing news. Check console.");
+        console.error(error);
+      }
+    });
+
+    window.onload = fetchRealUsers;
+  </script>
+
+</body>
+</html>

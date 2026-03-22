@@ -1,0 +1,232 @@
+/* Removes default browser spacing and sets a clean font */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #121212; /* Dark theme background */
+  color: #ffffff;
+}
+
+/* The Top Navigation Bar */
+.navbar {  
+  font-size: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 50px;
+  background-color: #1a1a1a;
+  border-bottom: 2px solid #0044ff; /* A sharp accent color */
+
+}
+
+/* Removes any weird borders browsers sometimes put on linked images */
+.logo-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+/* Controls the exact size of your logo in the navbar */
+.logo-img {
+  height: 45px; /* Adjust this number to make it bigger or smaller */
+  width: auto;  /* Keeps the logo proportions perfect */
+}
+
+.links a {
+  color: #cccccc;
+  text-decoration: none;
+  margin-left: 20px;
+  font-size: 16px;
+}
+
+.links a:hover {
+  color: #0044ff;
+}
+
+/* The Main Big Area (Hero) */
+/* The Main Big Area (Hero) with Background Image */
+.hero {
+  text-align: center;
+  /* We increased the padding to make the image area taller */
+  padding: 150px 20px; 
+  
+  /* This adds a 70% dark tint OVER your image so the text is readable */
+  background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("gta-background.jpg");
+  
+  /* These rules make sure the image fits perfectly */
+  background-size: cover;       /* Stretches image to cover the whole space */
+  background-position: center;  /* Keeps the best part of the image in the middle */
+  background-attachment: fixed; /* Optional: Makes a cool parallax effect when scrolling! */
+}
+
+.hero h1 {
+  font-size: 56px;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.hero p {
+  font-size: 20px;
+  color: #aaaaaa;
+  max-width: 700px;
+  margin: 0 auto 40px auto;
+  line-height: 1.6;
+}
+
+/* The Buttons */
+.btn-primary, .btn-secondary {
+  padding: 15px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 5px;
+  margin: 0 10px;
+}
+
+.btn-primary {
+  background-color: #0044ff;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: white;
+  border: 2px solid #0044ff;
+}
+
+/* The Features Grid at the bottom */
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 60px 50px;
+}
+
+.card {
+  background-color: #1e1e1e;
+  padding: 30px;
+  border-radius: 8px;
+  width: 30%;
+  text-align: left;
+  border-top: 4px solid #0044ff;
+}
+
+.card h2 {
+  font-size: 24px;
+  margin-top: 0;
+}
+
+.card p {
+  color: #bbbbbb;
+  line-height: 1.5;
+}
+
+/* --- ADMIN PANEL STYLES --- */
+
+.admin-body {
+  background-color: #0a0a0a; /* Slightly darker background for the admin side */
+}
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 250px;
+  background-color: #1a1a1a;
+  border-right: 2px solid #0044ff;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  padding: 0 20px 30px 20px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+}
+
+.sidebar-link {
+  color: #cccccc;
+  text-decoration: none;
+  padding: 15px 20px;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.sidebar-link:hover {
+  background-color: #1e1e1e;
+  color: #0044ff;
+  border-left: 4px solid #0044ff;
+}
+
+.back-home {
+  margin-top: auto; /* Pushes the back button to the bottom */
+  color: #ff4444;
+}
+
+/* Main Content Styles */
+.admin-content {
+  flex-grow: 1;
+  padding: 40px;
+}
+
+.admin-card {
+  background-color: #1e1e1e;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border-top: 4px solid #0044ff;
+}
+
+/* Forms inside the Admin Panel */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 600px;
+}
+
+.admin-form input[type="text"], 
+.admin-form textarea {
+  width: 100%;
+  padding: 12px;
+  background-color: #121212;
+  border: 1px solid #333;
+  color: white;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.admin-form input[type="text"]:focus, 
+.admin-form textarea:focus {
+  outline: none;
+  border-color: #0044ff;
+}
+
+.file-input {
+  padding: 10px 0;
+  color: #aaaaaa;
+}
+
+/* User Table Styles */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.admin-table th, .admin-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.admin-table th {
+  color: #0044ff;
+}
