@@ -1,4 +1,53 @@
-<form id="serverForm">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AplexN | Host a Server</title>
+  <style>
+    /* Inherit your basic styles */
+    body { background-color: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; }
+    .navbar { display: flex; justify-content: space-between; padding: 20px 50px; background: #1a1a24; border-bottom: 2px solid #333; }
+    .navbar a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
+    
+    /* Server Form Styles */
+    .container { max-width: 600px; margin: 50px auto; padding: 30px; background: #1e1e28; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 4px solid #FF3A65; }
+    h2 { color: #FF3A65; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+    
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
+    input[type="text"], textarea { width: 100%; padding: 12px; background: #2b2b36; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
+    input:focus, textarea:focus { outline: none; border-color: #FF3A65; }
+    
+    /* Image Preview Container */
+    .image-preview-box { text-align: center; margin-bottom: 20px; }
+    .image-preview-box img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 6px; border: 2px dashed #444; }
+    
+    /* Mod Toggle UI */
+    .toggle-box { background: #2b2b36; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #444; }
+    .toggle-box input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+    
+    /* File Upload */
+    .file-upload { margin-top: 10px; }
+    .file-upload input { background: transparent; border: none; padding: 0; color: #FF3A65; }
+    
+    button { width: 100%; padding: 15px; background: #FF3A65; color: white; font-weight: bold; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; text-transform: uppercase; transition: 0.2s; }
+    button:hover { background: #e92b54; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">AplexN</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="index.html">Servers</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Configure Your Server</h2>
+    
+    <form id="serverForm">
       <div class="image-preview-box">
         <label>Server Banner</label>
         <img id="previewImg" src="blueN.jpg" alt="Server Banner Preview" onerror="this.src='blueN.jpg'">
@@ -13,8 +62,8 @@
       </div>
 
       <div class="form-group">
-        <label>Server IP Address (e.g., Radmin VPN IP)</label>
-        <input type="text" id="serverIp" placeholder="26.14.X.X" required>
+        <label>Server IP Address (Required)</label>
+        <input type="text" id="serverIp" placeholder="e.g., 142.250.190.46 or 127.0.0.1" required>
       </div>
 
       <div class="form-group">
@@ -45,33 +94,41 @@
   <script>
     let base64Image = null;
 
-    // Handles dynamic image preview
+    // Handles dynamic image preview.
     function previewImage(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
           document.getElementById('previewImg').src = e.target.result;
-          base64Image = e.target.result; // Save image data for Node.js
+          base64Image = e.target.result; // Save the image data to send to Node.js
         }
         reader.readAsDataURL(file);
       }
     }
 
-    // Sends the form to Node.js
+    // Gathers the form data and sends it to your Render Master Server
     async function submitServer() {
+      // Get the IP address
       const ip = document.getElementById('serverIp').value;
-      if(!ip) return alert("You must provide a Server IP!");
+      
+      // If they didn't type an IP, stop them! The C++ app needs this.
+      if (!ip || ip.trim() === "") {
+        alert("You must provide a Server IP Address so players can connect!");
+        return;
+      }
 
+      // Build the package of data to send
       const serverData = {
         name: document.getElementById('serverName').value,
-        ip: ip, // NEW: Sending the IP to the database
+        ip: ip,
         description: document.getElementById('serverDesc').value,
         allowMods: document.getElementById('allowClientMods').checked,
         image: base64Image
       };
 
       try {
+        // Send it to your Node.js API
         const response = await fetch('/api/servers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -79,11 +136,13 @@
         });
 
         const data = await response.json();
+        
         if (data.success) {
-          window.location.href = "index.html"; // Send them back to the main list!
+          // Teleport the user back to the Homepage to see their new server!
+          window.location.href = "index.html"; 
         }
       } catch(err) {
-        alert("Error connecting to Master API");
+        alert("Error connecting to Master API. Make sure the server is online!");
       }
     }
   </script>
