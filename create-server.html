@@ -76,8 +76,7 @@
         <div class="file-upload">
           <input type="file" id="resourceFolder" webkitdirectory directory multiple>
         </div>
-
-      <button type="button" onclick="submitServer()">Initialize Server</button>
+      </div> <button type="button" onclick="submitServer()">Initialize Server</button>
     </form>
   </div>
 
@@ -103,47 +102,40 @@
         return;
       }
 
-      // Because we are uploading a massive folder of files, we MUST use FormData
-      // Standard JSON cannot handle thousands of nested folder files easily.
       const formData = new FormData();
       
-      // Append text data
       formData.append('name', document.getElementById('serverName').value);
       formData.append('ip', ip);
       formData.append('description', document.getElementById('serverDesc').value);
-      formData.append('allowMods', document.getElementById('allowClientMods').checked);
+      
+      // FIX: Safe checks for elements that might have been deleted
+      const allowModsEl = document.getElementById('allowClientMods');
+      if (allowModsEl) formData.append('allowMods', allowModsEl.checked);
       
       if (base64Image) {
           formData.append('image', base64Image);
       }
 
-      // Extract the entire folder structure and append every single file
       const resourceInput = document.getElementById('resourceFolder');
-      if (resourceInput.files.length > 0) {
+      if (resourceInput && resourceInput.files.length > 0) {
           for (let i = 0; i < resourceInput.files.length; i++) {
               let file = resourceInput.files[i];
-              // webkitRelativePath keeps the folder structure intact (e.g., "Resources/client/script.lua")
               formData.append('resources', file, file.webkitRelativePath);
           }
       }
 
-      // Grab any .bin mods they uploaded
       const modsInput = document.getElementById('serverMods');
-      if (modsInput.files.length > 0) {
+      if (modsInput && modsInput.files.length > 0) {
           for (let i = 0; i < modsInput.files.length; i++) {
               formData.append('mods', modsInput.files[i]);
           }
       }
 
-      // Change button text so the user knows it is uploading
       const btn = document.querySelector('button');
       btn.innerText = "Uploading Resources... Please Wait";
       btn.disabled = true;
 
       try {
-        // Send the complete FormData payload to your Node.js API
-        // Note: Do NOT set the 'Content-Type' header here. The browser automatically 
-        // sets it to 'multipart/form-data' and calculates the boundaries for you.
         const response = await fetch('/api/servers', {
           method: 'POST',
           body: formData
@@ -159,7 +151,7 @@
           btn.disabled = false;
         }
       } catch(err) {
-        alert("Error connecting to Master API or upload failed.");
+        alert("Error connecting to Master API or upload failed. Check your Node.js backend.");
         btn.innerText = "Initialize Server";
         btn.disabled = false;
       }
