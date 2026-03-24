@@ -94,6 +94,8 @@ app.post('/api/servers', uploadParams, async (req, res) => {
 app.get('/api/servers', (req, res) => {
     res.json(activeServers);
 });
+// This tells Node.js to serve your HTML files!
+app.use(express.static(__dirname)); 
 
 // Expose the zipped resources to the C++ Dashboard
 app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
