@@ -84,18 +84,6 @@
         <div class="file-upload">
           <input type="file" id="resourceFolder" webkitdirectory directory multiple>
         </div>
-        <small style="color: #aaa; display: block; margin-top: 10px; line-height: 1.4;">
-          *Select your Master Resources folder. It must contain the <b>client</b>, <b>server</b>, <b>temp</b>, and <b>packages</b> subfolders. All files inside will be uploaded to the Master API.
-        </small>
-      </div>
-
-      <div class="form-group">
-        <label>Upload Additional Server Mods (.BIN format only)</label>
-        <div class="toggle-box">
-          <input type="file" id="serverMods" accept=".bin" multiple>
-        </div>
-        <small style="color: #888; display: block; margin-top: 5px;">*Files are compiled to .bin to prevent players from stealing or editing your server resources.</small>
-      </div>
 
       <button type="button" onclick="submitServer()">Initialize Server</button>
     </form>
