@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer'); 
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver'); // NEW: The Zipping Engine
+const archiver = require('archiver'); 
 
 const app = express();
 app.use(express.json()); 
@@ -36,7 +36,6 @@ app.post('/api/servers', uploadParams, async (req, res) => {
         const zipFileName = `${safeName}_${Date.now()}.zip`;
         const zipFilePath = path.join(__dirname, 'hosted_resources', zipFileName);
         
-        // Ensure the hosted folder exists
         if (!fs.existsSync(path.join(__dirname, 'hosted_resources'))) {
             fs.mkdirSync(path.join(__dirname, 'hosted_resources'), { recursive: true });
         }
@@ -48,20 +47,17 @@ app.post('/api/servers', uploadParams, async (req, res) => {
         output.on('close', () => {
             console.log(`Successfully zipped ${archive.pointer()} bytes for ${serverName}`);
             
-            // Now that the zip is done, build the server object
             const newServer = {
                 name: serverName,
                 ip: serverIp,
                 description: req.body.description || "Welcome to my Server!",
                 allowMods: req.body.allowMods === 'true',
-                
-                // Provide the direct link to the newly created ZIP file!
                 resourceUrl: `/downloads/${zipFileName}`
             };
 
             activeServers.push(newServer);
             
-            // Clean up the loose temporary files to save hard drive space
+            // Clean up the loose temporary files
             if (req.files['resources']) {
                 req.files['resources'].forEach(file => fs.unlinkSync(file.path));
             }
@@ -74,11 +70,9 @@ app.post('/api/servers', uploadParams, async (req, res) => {
         // Put the uploaded folder files into the Zip
         if (req.files['resources']) {
             req.files['resources'].forEach(file => {
-                // Remove the top-level master folder name so it extracts cleanly
                 let parts = file.originalname.split('/');
                 parts.shift(); 
                 let innerPath = parts.join('/');
-                
                 archive.file(file.path, { name: innerPath });
             });
         }
@@ -94,9 +88,16 @@ app.post('/api/servers', uploadParams, async (req, res) => {
 app.get('/api/servers', (req, res) => {
     res.json(activeServers);
 });
-// --- EXPLICIT WEB ROUTES ---
-// This guarantees Node.js knows exactly how to serve your HTML pages
 
+// ==========================================
+// EXPLICIT WEB ROUTING (This fixes the Not Found error!)
+// ==========================================
+
+// Serve any static files (like your blueN.jpg image)
+app.use(express.static(__dirname));
+app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
+
+// Force the server to explicitly hand over the HTML files
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -109,16 +110,7 @@ app.get('/create-server.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'create-server.html'));
 });
 
-// Any images (like your blueN.jpg banner) need to be served too
-app.get('/blueN.jpg', (req, res) => {
-    res.sendFile(path.join(__dirname, 'blueN.jpg'));
-});
-
-// Expose the zipped resources to the C++ Dashboard
-app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
-
-// Expose the zipped resources to the C++ Dashboard
-app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
+// ==========================================
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Master API running on port ${PORT}`));
