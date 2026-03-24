@@ -1,89 +1,63 @@
 const express = require('express');
+const multer = require('multer'); // 1. Import Multer
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer'); // NEW: Tool for handling file uploads
 
 const app = express();
+app.use(express.json()); // Keeps standard JSON working for other routes
 
-// Configure Multer to save uploaded files into an "uploads" folder
-const upload = multer({ dest: 'uploads/' });
-
-app.use(express.json({ limit: '50mb' })); 
-app.use(express.static(__dirname));
-
-// --- DATABASES (Stored in memory for now) ---
-let activeServers = [];
-let unnamedServerCount = 0;
-
-// Fake users so your Admin Panel table isn't empty!
-let registeredUsers = [
-    { username: "AplexDev", serverIp: "26.14.55.102", registerDate: new Date() },
-    { username: "PlayerTwo", serverIp: "N/A", registerDate: new Date() }
-];
-
-// --- PUBLIC ROUTES ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
-
-app.get('/api/servers', (req, res) => res.json(activeServers));
-
-app.post('/api/servers', (req, res) => {
-    let serverData = req.body;
-    if (!serverData.description || serverData.description.trim() === "") serverData.description = "Welcome to my Server!";
-    if (!serverData.name || serverData.name.trim() === "") {
-        unnamedServerCount++;
-        serverData.name = `AplexN Server #${unnamedServerCount}`;
+// 2. Configure Multer to save uploaded folders into a "hosted_resources" folder
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dest = path.join(__dirname, 'hosted_resources');
+        if (!fs.existsSync(dest)) { fs.mkdirSync(dest, { recursive: true }); }
+        cb(null, dest);
+    },
+    filename: function (req, file, cb) {
+        // Keep the original file names
+        cb(null, Date.now() + '-' + file.originalname);
     }
-    if (!serverData.image) serverData.image = "blueN.jpg";
+});
+
+// We tell Multer to look for the "resources" folder and the "mods" files we sent from HTML
+const uploadParams = multer({ storage: storage }).fields([
+    { name: 'resources', maxCount: 500 }, // Allows up to 500 files inside the folder
+    { name: 'mods', maxCount: 10 }
+]);
+
+// 3. Apply the Multer middleware to your route!
+app.post('/api/servers', uploadParams, (req, res) => {
     
-    activeServers.push(serverData);
-    res.json({ success: true, message: "Server Created!" });
+    try {
+        // req.body now contains all your text!
+        const serverName = req.body.name;
+        const serverIp = req.body.ip;
+        const serverDesc = req.body.description;
+        const allowMods = req.body.allowMods;
+        const base64Image = req.body.image; 
+
+        // req.files contains all the uploaded folder files!
+        const uploadedResources = req.files['resources'] || [];
+        const uploadedMods = req.files['mods'] || [];
+
+        console.log(`Received Server: ${serverName} with ${uploadedResources.length} resource files.`);
+
+        // ==========================================
+        // PUT YOUR DATABASE SAVING LOGIC HERE!
+        // Save serverName, serverIp, etc., to your DB
+        // ==========================================
+
+        // Tell the HTML frontend it was a success
+        res.json({ success: true, message: "Server and Resources Uploaded!" });
+
+    } catch (error) {
+        console.error("Backend Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
 });
 
-// The endpoint your C++ Launcher reads from
-app.get('/api/news', (req, res) => {
-    fs.readFile('news.txt', 'utf8', (err, data) => {
-        if (err) res.send("Welcome to AplexN Framework!");
-        else res.send(data);
-    });
-});
+// 4. VERY IMPORTANT: You must serve the 'hosted_resources' folder statically
+// so your C++ Dashboard can actually download the files later!
+app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
 
-
-// --- ADMIN ROUTES ---
-
-// 1. Serve the Admin Page
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-// 2. Feed the Admin Panel the list of users
-app.get('/api/users', (req, res) => {
-    res.json(registeredUsers);
-});
-
-// 3. Receive the News Form from the Admin Panel
-app.post('/api/news/update', upload.single('image'), (req, res) => {
-    const title = req.body.title;
-    const body = req.body.body;
-    const file = req.file; // The uploaded image (if attached)
-
-    // Format the text perfectly for your C++ Launcher
-    const formattedNewsText = `[ ${title.toUpperCase()} ]\n\n${body}`;
-
-    // Physically overwrite the news.txt file!
-    fs.writeFile('news.txt', formattedNewsText, (err) => {
-        if (err) {
-            console.log("Error writing news:", err);
-            return res.status(500).json({ success: false });
-        }
-        
-        console.log(`[ADMIN] News Updated: ${title}`);
-        res.json({ success: true });
-    });
-});
-
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Aplex Master API running on port ${PORT}`);
-});
+// ... the rest of your server.listen code ...
