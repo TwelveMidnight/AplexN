@@ -15,7 +15,7 @@
     
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
-    input[type="text"], textarea { width: 100%; padding: 12px; background: #2b2b36; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
+    input[type="text"], input[type="url"], textarea { width: 100%; padding: 12px; background: #2b2b36; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
     input:focus, textarea:focus { outline: none; border-color: #FF3A65; }
     
     /* Image Preview Container */
@@ -79,6 +79,29 @@
         </div>
       </div>
 
+      <fieldset style="border: 1px solid #444; padding: 15px; margin-bottom: 20px; border-radius: 6px;">
+        <legend style="color: #FF3A65; font-size: 13px; text-transform: uppercase; padding: 0 5px; font-weight: bold;">Server Resources (Direct Download URLs)</legend>
+        
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>Client Resources (URL)</label>
+            <input type="url" id="client_res" placeholder="https://yoursite.com/client.zip">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>Server Resources (URL)</label>
+            <input type="url" id="server_res" placeholder="https://yoursite.com/server.zip">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>Temp Files (URL)</label>
+            <input type="url" id="temp_res" placeholder="https://yoursite.com/temp.zip">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Packages (URL)</label>
+            <input type="url" id="packages_res" placeholder="https://yoursite.com/packages.zip">
+        </div>
+      </fieldset>
       <div class="form-group">
         <label>Upload Server Resources (.BIN format only)</label>
         <div class="toggle-box">
@@ -124,7 +147,12 @@
         ip: ip,
         description: document.getElementById('serverDesc').value,
         allowMods: document.getElementById('allowClientMods').checked,
-        image: base64Image
+        image: base64Image,
+        // NEW: Grab the resource URLs from the inputs
+        client: document.getElementById('client_res').value,
+        server: document.getElementById('server_res').value,
+        temp: document.getElementById('temp_res').value,
+        packages: document.getElementById('packages_res').value
       };
 
       try {
