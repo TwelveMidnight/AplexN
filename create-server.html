@@ -15,7 +15,7 @@
     
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
-    input[type="text"], input[type="url"], textarea { width: 100%; padding: 12px; background: #2b2b36; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
+    input[type="text"], textarea { width: 100%; padding: 12px; background: #2b2b36; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
     input:focus, textarea:focus { outline: none; border-color: #FF3A65; }
     
     /* Image Preview Container */
@@ -79,31 +79,18 @@
         </div>
       </div>
 
-      <fieldset style="border: 1px solid #444; padding: 15px; margin-bottom: 20px; border-radius: 6px;">
-        <legend style="color: #FF3A65; font-size: 13px; text-transform: uppercase; padding: 0 5px; font-weight: bold;">Server Resources (Direct Download URLs)</legend>
-        
-        <div class="form-group" style="margin-bottom: 12px;">
-            <label>Client Resources (URL)</label>
-            <input type="url" id="client_res" placeholder="https://yoursite.com/client.zip">
+      <div class="form-group" style="border: 1px solid #FF3A65; padding: 15px; border-radius: 6px; background: #22222d;">
+        <label style="color: #FF3A65; font-weight: bold;">Upload Server Resources Folder</label>
+        <div class="file-upload">
+          <input type="file" id="resourceFolder" webkitdirectory directory multiple>
         </div>
+        <small style="color: #aaa; display: block; margin-top: 10px; line-height: 1.4;">
+          *Select your Master Resources folder. It must contain the <b>client</b>, <b>server</b>, <b>temp</b>, and <b>packages</b> subfolders. All files inside will be uploaded to the Master API.
+        </small>
+      </div>
 
-        <div class="form-group" style="margin-bottom: 12px;">
-            <label>Server Resources (URL)</label>
-            <input type="url" id="server_res" placeholder="https://yoursite.com/server.zip">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 12px;">
-            <label>Temp Files (URL)</label>
-            <input type="url" id="temp_res" placeholder="https://yoursite.com/temp.zip">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Packages (URL)</label>
-            <input type="url" id="packages_res" placeholder="https://yoursite.com/packages.zip">
-        </div>
-      </fieldset>
       <div class="form-group">
-        <label>Upload Server Resources (.BIN format only)</label>
+        <label>Upload Additional Server Mods (.BIN format only)</label>
         <div class="toggle-box">
           <input type="file" id="serverMods" accept=".bin" multiple>
         </div>
@@ -117,60 +104,84 @@
   <script>
     let base64Image = null;
 
-    // Handles dynamic image preview.
     function previewImage(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
           document.getElementById('previewImg').src = e.target.result;
-          base64Image = e.target.result; // Save the image data to send to Node.js
+          base64Image = e.target.result; 
         }
         reader.readAsDataURL(file);
       }
     }
 
-    // Gathers the form data and sends it to your Render Master Server
     async function submitServer() {
-      // Get the IP address
       const ip = document.getElementById('serverIp').value;
-      
-      // If they didn't type an IP, stop them! The C++ app needs this.
       if (!ip || ip.trim() === "") {
         alert("You must provide a Server IP Address so players can connect!");
         return;
       }
 
-      // Build the package of data to send
-      const serverData = {
-        name: document.getElementById('serverName').value,
-        ip: ip,
-        description: document.getElementById('serverDesc').value,
-        allowMods: document.getElementById('allowClientMods').checked,
-        image: base64Image,
-        // NEW: Grab the resource URLs from the inputs
-        client: document.getElementById('client_res').value,
-        server: document.getElementById('server_res').value,
-        temp: document.getElementById('temp_res').value,
-        packages: document.getElementById('packages_res').value
-      };
+      // Because we are uploading a massive folder of files, we MUST use FormData
+      // Standard JSON cannot handle thousands of nested folder files easily.
+      const formData = new FormData();
+      
+      // Append text data
+      formData.append('name', document.getElementById('serverName').value);
+      formData.append('ip', ip);
+      formData.append('description', document.getElementById('serverDesc').value);
+      formData.append('allowMods', document.getElementById('allowClientMods').checked);
+      
+      if (base64Image) {
+          formData.append('image', base64Image);
+      }
+
+      // Extract the entire folder structure and append every single file
+      const resourceInput = document.getElementById('resourceFolder');
+      if (resourceInput.files.length > 0) {
+          for (let i = 0; i < resourceInput.files.length; i++) {
+              let file = resourceInput.files[i];
+              // webkitRelativePath keeps the folder structure intact (e.g., "Resources/client/script.lua")
+              formData.append('resources', file, file.webkitRelativePath);
+          }
+      }
+
+      // Grab any .bin mods they uploaded
+      const modsInput = document.getElementById('serverMods');
+      if (modsInput.files.length > 0) {
+          for (let i = 0; i < modsInput.files.length; i++) {
+              formData.append('mods', modsInput.files[i]);
+          }
+      }
+
+      // Change button text so the user knows it is uploading
+      const btn = document.querySelector('button');
+      btn.innerText = "Uploading Resources... Please Wait";
+      btn.disabled = true;
 
       try {
-        // Send it to your Node.js API
+        // Send the complete FormData payload to your Node.js API
+        // Note: Do NOT set the 'Content-Type' header here. The browser automatically 
+        // sets it to 'multipart/form-data' and calculates the boundaries for you.
         const response = await fetch('/api/servers', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(serverData)
+          body: formData
         });
 
         const data = await response.json();
         
         if (data.success) {
-          // Teleport the user back to the Homepage to see their new server!
           window.location.href = "index.html"; 
+        } else {
+          alert("Server responded with an error.");
+          btn.innerText = "Initialize Server";
+          btn.disabled = false;
         }
       } catch(err) {
-        alert("Error connecting to Master API. Make sure the server is online!");
+        alert("Error connecting to Master API or upload failed.");
+        btn.innerText = "Initialize Server";
+        btn.disabled = false;
       }
     }
   </script>
