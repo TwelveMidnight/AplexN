@@ -94,8 +94,28 @@ app.post('/api/servers', uploadParams, async (req, res) => {
 app.get('/api/servers', (req, res) => {
     res.json(activeServers);
 });
-// This tells Node.js to serve your HTML files!
-app.use(express.static(__dirname)); 
+// --- EXPLICIT WEB ROUTES ---
+// This guarantees Node.js knows exactly how to serve your HTML pages
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/create-server.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'create-server.html'));
+});
+
+// Any images (like your blueN.jpg banner) need to be served too
+app.get('/blueN.jpg', (req, res) => {
+    res.sendFile(path.join(__dirname, 'blueN.jpg'));
+});
+
+// Expose the zipped resources to the C++ Dashboard
+app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
 
 // Expose the zipped resources to the C++ Dashboard
 app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
