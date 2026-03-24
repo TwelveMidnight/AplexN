@@ -1,12 +1,14 @@
 const express = require('express');
-const multer = require('multer'); // 1. Import Multer
+const multer = require('multer'); 
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
-app.use(express.json()); // Keeps standard JSON working for other routes
+app.use(express.json()); 
 
-// 2. Configure Multer to save uploaded folders into a "hosted_resources" folder
+// 1. THE MASTER SERVER LIST (Holds the data in memory)
+let activeServers = []; 
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const dest = path.join(__dirname, 'hosted_resources');
@@ -14,41 +16,37 @@ const storage = multer.diskStorage({
         cb(null, dest);
     },
     filename: function (req, file, cb) {
-        // Keep the original file names
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
 
-// We tell Multer to look for the "resources" folder and the "mods" files we sent from HTML
 const uploadParams = multer({ storage: storage }).fields([
-    { name: 'resources', maxCount: 500 }, // Allows up to 500 files inside the folder
+    { name: 'resources', maxCount: 500 }, 
     { name: 'mods', maxCount: 10 }
 ]);
 
-// 3. Apply the Multer middleware to your route!
+// 2. THE POST ROUTE (Catches the HTML form)
 app.post('/api/servers', uploadParams, (req, res) => {
-    
     try {
-        // req.body now contains all your text!
-        const serverName = req.body.name;
-        const serverIp = req.body.ip;
-        const serverDesc = req.body.description;
-        const allowMods = req.body.allowMods;
-        const base64Image = req.body.image; 
+        // Build the server object from the HTML form
+        const newServer = {
+            name: req.body.name || "AplexN Default Server",
+            ip: req.body.ip,
+            description: req.body.description || "Welcome to my Server!",
+            allowMods: req.body.allowMods === 'true',
+            
+            // We are leaving these blank for a specific reason (explained below)
+            client: "", 
+            server: "",
+            temp: "",
+            packages: ""
+        };
 
-        // req.files contains all the uploaded folder files!
-        const uploadedResources = req.files['resources'] || [];
-        const uploadedMods = req.files['mods'] || [];
+        // SAVE IT TO THE MASTER LIST!
+        activeServers.push(newServer);
+        console.log(`Successfully added! Total Servers Online: ${activeServers.length}`);
 
-        console.log(`Received Server: ${serverName} with ${uploadedResources.length} resource files.`);
-
-        // ==========================================
-        // PUT YOUR DATABASE SAVING LOGIC HERE!
-        // Save serverName, serverIp, etc., to your DB
-        // ==========================================
-
-        // Tell the HTML frontend it was a success
-        res.json({ success: true, message: "Server and Resources Uploaded!" });
+        res.json({ success: true, message: "Server Created!" });
 
     } catch (error) {
         console.error("Backend Error:", error);
@@ -56,8 +54,14 @@ app.post('/api/servers', uploadParams, (req, res) => {
     }
 });
 
-// 4. VERY IMPORTANT: You must serve the 'hosted_resources' folder statically
-// so your C++ Dashboard can actually download the files later!
+// 3. THE GET ROUTE (The C++ Dashboard reads this!)
+app.get('/api/servers', (req, res) => {
+    // Send the active server list back to the Dashboard
+    res.json(activeServers);
+});
+
+// 4. File Hosting Route
 app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
 
-// ... the rest of your server.listen code ...
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Master API running on port ${PORT}`));
