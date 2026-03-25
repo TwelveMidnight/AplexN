@@ -1,79 +1,106 @@
-<script>
-    let base64Image = null;
+const express = require('express');
+const multer = require('multer'); 
+const fs = require('fs');
+const path = require('path');
+const archiver = require('archiver'); 
 
-    function previewImage(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('previewImg').src = e.target.result;
-          base64Image = e.target.result; 
-        }
-        reader.readAsDataURL(file);
-      }
+const app = express();
+app.use(express.json()); 
+
+let activeServers = []; 
+let unnamedServerCount = 0; // NEW: The master counter for unnamed servers!
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dest = path.join(__dirname, 'temp_uploads');
+        if (!fs.existsSync(dest)) { fs.mkdirSync(dest, { recursive: true }); }
+        cb(null, dest);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + path.basename(file.originalname));
     }
+});
 
-    async function submitServer() {
-      const ip = document.getElementById('serverIp').value;
-      if (!ip || ip.trim() === "") {
-        alert("You must provide a Server IP Address so players can connect!");
-        return;
-      }
+const uploadParams = multer({ storage: storage }).fields([
+    { name: 'resources', maxCount: 1000 }, 
+    { name: 'mods', maxCount: 10 }
+]);
 
-      const formData = new FormData();
-      
-      // Notice: We just pass exactly what is in the box. No fallbacks! 
-      // If it's blank, the Node.js backend handles the #1, #2 numbering.
-      formData.append('name', document.getElementById('serverName').value.trim());
-      
-      formData.append('ip', ip);
-      formData.append('description', document.getElementById('serverDesc').value);
-      
-      const allowModsEl = document.getElementById('allowClientMods');
-      if (allowModsEl) formData.append('allowMods', allowModsEl.checked);
-      
-      if (base64Image) {
-          formData.append('image', base64Image);
-      }
+app.post('/api/servers', uploadParams, async (req, res) => {
+    try {
+        // --- YOUR EXACT NAMING RULE ---
+        let finalServerName = req.body.name;
+        
+        // If the user left the name blank, give them the sequential AplexN Server # ID
+        if (!finalServerName || finalServerName.trim() === "") {
+            unnamedServerCount++; // Increase the count
+            finalServerName = `AplexN Server #${unnamedServerCount}`;
+        }
+        // ------------------------------
 
-      const resourceInput = document.getElementById('resourceFolder');
-      if (resourceInput && resourceInput.files.length > 0) {
-          for (let i = 0; i < resourceInput.files.length; i++) {
-              let file = resourceInput.files[i];
-              formData.append('resources', file, file.webkitRelativePath);
-          }
-      }
+        const serverIp = req.body.ip;
+        
+        const safeName = finalServerName.replace(/[^a-zA-Z0-9]/g, '_');
+        const zipFileName = `${safeName}_${Date.now()}.zip`;
+        const zipFilePath = path.join(__dirname, 'hosted_resources', zipFileName);
+        
+        if (!fs.existsSync(path.join(__dirname, 'hosted_resources'))) {
+            fs.mkdirSync(path.join(__dirname, 'hosted_resources'), { recursive: true });
+        }
 
-      const modsInput = document.getElementById('serverMods');
-      if (modsInput && modsInput.files.length > 0) {
-          for (let i = 0; i < modsInput.files.length; i++) {
-              formData.append('mods', modsInput.files[i]);
-          }
-      }
+        const output = fs.createWriteStream(zipFilePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
 
-      const btn = document.querySelector('button');
-      btn.innerText = "Uploading Resources... Please Wait";
-      btn.disabled = true;
+        output.on('close', () => {
+            console.log(`Successfully zipped ${archive.pointer()} bytes for ${finalServerName}`);
+            
+            const newServer = {
+                name: finalServerName, // Use the sequentially numbered name!
+                ip: serverIp,
+                description: req.body.description || "Welcome to my Server!",
+                allowMods: req.body.allowMods === 'true',
+                resourceUrl: `/downloads/${zipFileName}`
+            };
 
-      try {
-        const response = await fetch('/api/servers', {
-          method: 'POST',
-          body: formData
+            activeServers.push(newServer);
+            
+            if (req.files['resources']) {
+                req.files['resources'].forEach(file => fs.unlinkSync(file.path));
+            }
+
+            res.json({ success: true, message: "Server Created and Zipped!" });
         });
 
-        const data = await response.json();
-        
-        if (data.success) {
-          window.location.href = "index.html"; 
-        } else {
-          alert("Server responded with an error.");
-          btn.innerText = "Initialize Server";
-          btn.disabled = false;
+        archive.pipe(output);
+
+        if (req.files['resources']) {
+            req.files['resources'].forEach(file => {
+                let parts = file.originalname.split('/');
+                parts.shift(); 
+                let innerPath = parts.join('/');
+                archive.file(file.path, { name: innerPath });
+            });
         }
-      } catch(err) {
-        alert("Error connecting to Master API or upload failed. Check your Node.js backend.");
-        btn.innerText = "Initialize Server";
-        btn.disabled = false;
-      }
+        
+        archive.finalize();
+
+    } catch (error) {
+        console.error("Backend Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
-  </script>
+});
+
+app.get('/api/servers', (req, res) => {
+    res.json(activeServers);
+});
+
+// Explicit Web Routes
+app.use(express.static(__dirname));
+app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
+
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+app.get('/create-server.html', (req, res) => { res.sendFile(path.join(__dirname, 'create-server.html')); });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Master API running on port ${PORT}`));
