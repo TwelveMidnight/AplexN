@@ -94,7 +94,7 @@
         reader.readAsDataURL(file);
       }
     }
-
+    
     async function submitServer() {
       const ip = document.getElementById('serverIp').value;
       if (!ip || ip.trim() === "") {
@@ -104,11 +104,24 @@
 
       const formData = new FormData();
       
-      formData.append('name', document.getElementById('serverName').value);
+      // --- NEW: DYNAMIC NAME LOGIC ---
+      // 1. Look at the URL to see if the C++ Dashboard sent a username
+      const urlParams = new URLSearchParams(window.location.search);
+      const hostName = urlParams.get('host') || "AplexN Player";
+      
+      // 2. Check if the user left the box blank
+      let finalServerName = document.getElementById('serverName').value.trim();
+      if (finalServerName === "") {
+          finalServerName = hostName + "'s Server"; 
+      }
+      
+      // 3. Save the final decided name!
+      formData.append('name', finalServerName);
+      // -------------------------------
+
       formData.append('ip', ip);
       formData.append('description', document.getElementById('serverDesc').value);
       
-      // FIX: Safe checks for elements that might have been deleted
       const allowModsEl = document.getElementById('allowClientMods');
       if (allowModsEl) formData.append('allowMods', allowModsEl.checked);
       
