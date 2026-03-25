@@ -81,7 +81,7 @@
   </div>
 
   <script>
-    let base64Image = null;
+let base64Image = null;
 
     function previewImage(event) {
       const file = event.target.files[0];
@@ -94,7 +94,7 @@
         reader.readAsDataURL(file);
       }
     }
-    
+
     async function submitServer() {
       const ip = document.getElementById('serverIp').value;
       if (!ip || ip.trim() === "") {
@@ -104,21 +104,10 @@
 
       const formData = new FormData();
       
-      // --- NEW: DYNAMIC NAME LOGIC ---
-      // 1. Look at the URL to see if the C++ Dashboard sent a username
-      const urlParams = new URLSearchParams(window.location.search);
-      const hostName = urlParams.get('host') || "AplexN Player";
+      // Notice: We just pass exactly what is in the box. No fallbacks! 
+      // If it's blank, the Node.js backend handles the #1, #2 numbering.
+      formData.append('name', document.getElementById('serverName').value.trim());
       
-      // 2. Check if the user left the box blank
-      let finalServerName = document.getElementById('serverName').value.trim();
-      if (finalServerName === "") {
-          finalServerName = hostName + "'s Server"; 
-      }
-      
-      // 3. Save the final decided name!
-      formData.append('name', finalServerName);
-      // -------------------------------
-
       formData.append('ip', ip);
       formData.append('description', document.getElementById('serverDesc').value);
       
