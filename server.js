@@ -8,8 +8,8 @@ const app = express();
 app.use(express.json()); 
 
 let activeServers = []; 
+let unnamedServerCount = 0; // NEW: The master counter for unnamed servers!
 
-// Temporarily store uploaded files before zipping
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const dest = path.join(__dirname, 'temp_uploads');
@@ -28,11 +28,19 @@ const uploadParams = multer({ storage: storage }).fields([
 
 app.post('/api/servers', uploadParams, async (req, res) => {
     try {
-        const serverName = req.body.name || "AplexN_Server";
+        // --- YOUR EXACT NAMING RULE ---
+        let finalServerName = req.body.name;
+        
+        // If the user left the name blank, give them the sequential AplexN Server # ID
+        if (!finalServerName || finalServerName.trim() === "") {
+            unnamedServerCount++; // Increase the count
+            finalServerName = `AplexN Server #${unnamedServerCount}`;
+        }
+        // ------------------------------
+
         const serverIp = req.body.ip;
         
-        // Create a safe, web-friendly name for the zip file
-        const safeName = serverName.replace(/[^a-zA-Z0-9]/g, '_');
+        const safeName = finalServerName.replace(/[^a-zA-Z0-9]/g, '_');
         const zipFileName = `${safeName}_${Date.now()}.zip`;
         const zipFilePath = path.join(__dirname, 'hosted_resources', zipFileName);
         
@@ -40,15 +48,14 @@ app.post('/api/servers', uploadParams, async (req, res) => {
             fs.mkdirSync(path.join(__dirname, 'hosted_resources'), { recursive: true });
         }
 
-        // --- THE ZIPPING PROCESS ---
         const output = fs.createWriteStream(zipFilePath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         output.on('close', () => {
-            console.log(`Successfully zipped ${archive.pointer()} bytes for ${serverName}`);
+            console.log(`Successfully zipped ${archive.pointer()} bytes for ${finalServerName}`);
             
             const newServer = {
-                name: serverName,
+                name: finalServerName, // Use the sequentially numbered name!
                 ip: serverIp,
                 description: req.body.description || "Welcome to my Server!",
                 allowMods: req.body.allowMods === 'true',
@@ -57,7 +64,6 @@ app.post('/api/servers', uploadParams, async (req, res) => {
 
             activeServers.push(newServer);
             
-            // Clean up the loose temporary files
             if (req.files['resources']) {
                 req.files['resources'].forEach(file => fs.unlinkSync(file.path));
             }
@@ -67,7 +73,6 @@ app.post('/api/servers', uploadParams, async (req, res) => {
 
         archive.pipe(output);
 
-        // Put the uploaded folder files into the Zip
         if (req.files['resources']) {
             req.files['resources'].forEach(file => {
                 let parts = file.originalname.split('/');
@@ -89,28 +94,13 @@ app.get('/api/servers', (req, res) => {
     res.json(activeServers);
 });
 
-// ==========================================
-// EXPLICIT WEB ROUTING (This fixes the Not Found error!)
-// ==========================================
-
-// Serve any static files (like your blueN.jpg image)
+// Explicit Web Routes
 app.use(express.static(__dirname));
 app.use('/downloads', express.static(path.join(__dirname, 'hosted_resources')));
 
-// Force the server to explicitly hand over the HTML files
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/index.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/create-server.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'create-server.html'));
-});
-
-// ==========================================
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+app.get('/create-server.html', (req, res) => { res.sendFile(path.join(__dirname, 'create-server.html')); });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Master API running on port ${PORT}`));
